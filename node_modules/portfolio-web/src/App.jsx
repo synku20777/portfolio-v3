@@ -1,13 +1,13 @@
 import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowUpRight,
   Mail,
   Github,
   Linkedin,
   Download,
   Filter,
   Scissors,
+  X,
 } from "lucide-react";
 
 /**
@@ -210,7 +210,7 @@ const thermalPaperBg = {
     // faint horizontal banding (top layer)
     "repeating-linear-gradient(0deg,rgba(0,0,0,0.02) 0 2px,transparent 2px 14px)," +
     // vertical feed stripes at 10% alpha (bottom layer)
-    "repeating-linear-gradient(90deg,rgba(0,0,0,0.1) 0 8px,transparent 8px 16px)",
+    "repeating-linear-gradient(90deg,rgba(0,0,0,0.04) 0 8px,transparent 8px 16px)",
   // Banding covers full card; stripes are a shallow 8px height row, then non-repeated vertically
   backgroundSize: "100% 100%, 100% 8px",
   backgroundRepeat: "repeat, no-repeat",
@@ -292,31 +292,31 @@ function ProjectCard({ p }) {
       {/* Side perforation strips (pure CSS via repeating radial gradients) */}
       <div
         aria-hidden
-        className="absolute left-0 top-0 h-full w-3 border-r border-black bg-[repeating-radial-gradient(circle_at_1.5px_1.5px,#fff_0_1.5px,transparent_1.5px_6px)]"
+        className="absolute left-0 top-0 h-full w-3 bg-[repeating-radial-gradient(circle_at_1.5px_1.5px,rgba(0,0,0,0.08)_0_1.5px,transparent_1.5px_6px)]"
       />
       <div
         aria-hidden
-        className="absolute right-0 top-0 h-full w-3 border-l border-black bg-[repeating-radial-gradient(circle_at_1.5px_1.5px,#fff_0_1.5px,transparent_1.5px_6px)]"
+        className="absolute right-0 top-0 h-full w-3 bg-[repeating-radial-gradient(circle_at_1.5px_1.5px,rgba(0,0,0,0.08)_0_1.5px,transparent_1.5px_6px)]"
+        style={{ borderColor: "rgba(0,0,0,0.12)" }}
       />
-
       {/* Header band — receipt masthead */}
       <div className="px-4 pt-3 pb-2 border-b border-black">
         <div className="flex items-start justify-between gap-4">
           <h3 className="font-black tracking-tight leading-none text-[clamp(14px,2vw,22px)] uppercase">
             {p.title}
           </h3>
-          <span className="text-[10px] leading-none uppercase">{p.year}</span>
+          <span className="text-[12px] leading-none uppercase">{p.year}</span>
         </div>
-        <div className="mt-2 text-[10px] uppercase font-mono flex items-center justify-between">
-          <span>CASE ID: {p.id}</span>
-          <span>LOT: {p.lot ?? "—"}</span>
+        <div className="mt-2 text-[10px] flex items-center justify-between">
+          <span>Client: {p.client ?? "—"}</span>
+          <span>Case ID: {p.id}</span>
+          <span>Lot: {p.lot ?? "—"}</span>
         </div>
       </div>
-
       {/* Body */}
       <div className="p-4 grid gap-3">
         {/* Monochrome image — styled like thermal print */}
-        <div className="aspect-[16/9] w-full border border-black overflow-hidden bg-white">
+        <div className="aspect-[16/9] w-full overflow-hidden bg-white">
           {p.image ? (
             <img
               src={p.image}
@@ -327,7 +327,7 @@ function ProjectCard({ p }) {
           ) : (
             <div className="h-full w-full grid place-items-center">
               <FauxQR seed={p.title || p.id} size={96} />
-              <span className="text-[10px] uppercase mt-2">no image</span>
+              <span className="text-[10px] uppercase">no image</span>
             </div>
           )}
         </div>
@@ -339,21 +339,19 @@ function ProjectCard({ p }) {
         </div>
 
         {/* Summary line with dashed cap */}
-        <div className="border-y border-dashed border-black p-2 text-sm leading-snug font-medium">
-          {p.summary}
-        </div>
+        <div className="px-1 text-sm leading-snug font-medium">{p.summary}</div>
 
         {/* Products purchased (derived from services/tags) */}
         {items.length ? (
           <div>
-            <div className="px-2 py-1 text-[10px] uppercase font-semibold border-b border-black">
-              Products
+            <div className="px-1 text-[16px] font-bold font-semibold border-b border-black">
+              Artifacts
             </div>
             <div className="p-2">
               {items.map((it, idx) => (
                 <div
                   key={idx}
-                  className="grid grid-cols-[auto_1fr_auto] items-baseline gap-3 py-1 border-b border-dashed border-black text-[12px]"
+                  className="grid grid-cols-[auto_1fr_auto] items-baseline gap-3 border-b border-dashed border-black text-[12px]"
                 >
                   <span className="font-mono">{it.code}</span>
                   <span className="uppercase">{it.name}</span>
@@ -368,14 +366,14 @@ function ProjectCard({ p }) {
           </div>
         )}
         {/* Hours + read time (no tax/total) */}
-        <div className="mt-1">
-          <div className="grid grid-cols-[1fr_auto] gap-3 py-1 text-[11px] uppercase">
+        <div>
+          <div className="grid grid-cols-[1fr_auto] gap-3 text-[14px]">
             <span className="tracking-wide">Subtotal (Hours)</span>
             <span className="font-mono">
               {p.hours != null ? `${p.hours}h` : "—"}
             </span>
           </div>
-          <div className="grid grid-cols-[1fr_auto] gap-3 py-1 border-t border-dashed border-black text-[11px] uppercase">
+          <div className="grid grid-cols-[1fr_auto] gap-3 border-t border-dashed border-black text-[14px]">
             <span className="tracking-wide font-semibold">
               Read Time (Case)
             </span>
@@ -384,36 +382,36 @@ function ProjectCard({ p }) {
         </div>
 
         {/* Footer strip with barcode + action as label button */}
-        <div className="flex items-center justify-between pt-2">
-          <div className="w-1/2 max-w-[220px]">
+        <div className="flex items-center justify-between">
+          <div className="max-w-[220px]">
             <Barcode value={`${p.id}-${p.year}`} height={36} />
           </div>
           <a
             href={p.link}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-2 px-3 py-2 border border-black uppercase text-[11px] font-bold hover:bg-black hover:text-white transition-colors"
+            className="inline-flex items-center gap-2 px-3 py-2 border border-transparent hover:border-black transition-colors"
           >
-            Case Study <ArrowUpRight size={16} />
+            Case Study →
           </a>
         </div>
 
         {/* Stub separator (perforation) */}
-        <div className="mt-3 border-t border-dashed border-black" />
+        <div className="border-t border-dashed border-black" />
         {/* Tear-off stub */}
-        <div className="grid grid-cols-[1fr_auto] gap-3 items-center py-2">
-          <div className="text-[10px] uppercase">
+        <div className="flex flex-col">
+          <div className="text-[10px] uppercase flex items-stretch justify-between py-1">
             <div className="flex items-center gap-2">
               <Scissors size={14} />
               <span>Cut along the perforation · Keep stub</span>
             </div>
-            <div className="font-mono mt-1">
+            <div className="font-mono">
               {p.id}/{p.year} · LOT {p.lot}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-[96px]">
-              <Barcode value={`STUB-${p.id}`} height={32} />
+          <div className="flex items-center justify-between">
+            <div className="w-auto">
+              <Barcode value={`STUB-${p.id}`} height={40} />
             </div>
             <RealQR data={p.link} size={80} />
           </div>
@@ -432,46 +430,90 @@ function ProjectCard({ p }) {
 // -----------------------------
 const DEMO = [
   {
-    id: "x01",
-    title: "Ennova Design System",
-    year: "2025",
+    id: "c01",
+    title: "UxUnite — Design System",
+    client: "UxUnite",
+    year: "2022",
     lot: null,
-    tags: ["Design System", "Components", "Governance"],
-    status: "ACTIVE",
+    tags: ["Design System", "Accessibility", "Color", "Typography", "Audit"],
+    services: [
+      "Design System",
+      "Color Palette",
+      "Accessibility",
+      "Typography",
+      "Design Audit",
+    ],
+    status: "LIVE",
     hours: null,
-    readMinutes: 2,
+    readMinutes: 4,
     image: null,
     summary:
-      "Built a reusable, tokenized component library adopted by 3+ internal teams; set standards (tokens, naming, best practices), maintained docs/versioning, and led 2 onboarding workshops to drive adoption. ",
-    link: "https://nestux.site",
+      "Design system to align teams: UI audit, refreshed color palette to meet WCAG, modular type scale (1.25), shared tokens/components, docs and onboarding.",
+    link: "/cases/case-1.pdf",
   },
   {
-    id: "x02",
-    title: "Aurora Marketplace — System & UX",
-    year: "2024",
+    id: "c02",
+    title: "Artsy — Museum UX App",
+    client: "—",
+    year: "2022",
     lot: null,
-    tags: ["Design System", "UX Research", "Flows"],
-    status: "ACTIVE",
-    hours: null,
-    readMinutes: 3,
-    image: null,
-    summary:
-      "Developed a scalable design system used across multiple product teams; ran interviews, surveys, and usability tests to validate needs; iterated user flows to enhance usability and satisfaction. ",
-    link: "https://nestux.site",
-  },
-  {
-    id: "x03",
-    title: "Cloud First Nordics (Accenture) — Web Suite",
-    year: "2023",
-    lot: null,
-    tags: ["Web", "Prototyping", "Responsive"],
+    tags: ["UX Research", "Personas", "Wireframing", "Prototyping"],
+    services: [
+      "Interviews",
+      "Personas",
+      "Journey Mapping",
+      "Wireframes",
+      "Hi‑fi Prototype",
+    ],
     status: "ARCHIVED",
     hours: null,
+    readMinutes: 5,
+    image: null,
+    summary:
+      "12 interviews uncovered pain points (tickets, inconsistent storytelling, navigation). Ideation (Crazy 8s), low‑fi wireframes → high‑fi prototype for personalized tours, maps, and easier booking.",
+    link: "/cases/case-2.pdf",
+  },
+  {
+    id: "c03",
+    title: "Firefly — Ecommerce Website",
+    client: "Firefly",
+    year: "2024",
+    lot: null,
+    tags: ["Ecommerce", "Web", "Figma", "Branding"],
+    services: [
+      "Information Architecture",
+      "Visual Design",
+      "Prototype",
+      "Site Build",
+    ],
+    status: "LIVE",
+    hours: null,
     readMinutes: 3,
     image: null,
     summary:
-      "Produced wireframes/prototypes, aligned stakeholders, and shipped responsive, cross-browser websites; identified improvements, balanced business/user needs, and supported marketing/process definition (Figma, WordPress, YOOtheme). ",
-    link: "https://nestux.site",
+      "Site for a stove alarm product; clear structure for buyers/owners (manuals, sheets), simple UX, collaboration with two junior designers; defined palette and Cardo type in Figma/FigJam.",
+    link: "/cases/case-3.pdf",
+  },
+  {
+    id: "c04",
+    title: "Cloud First Nordics — Knowledge Hub",
+    client: "Accenture",
+    year: "2023",
+    lot: null,
+    tags: ["WordPress", "UI/UX", "Research", "Redesign"],
+    services: [
+      "Information Architecture",
+      "Content Structuring",
+      "Design",
+      "WordPress (YOOtheme)",
+    ],
+    status: "LIVE",
+    hours: null,
+    readMinutes: 4,
+    image: null,
+    summary:
+      "Internal portal aggregating Cloud First content; led IA, categorization, design and launch on WordPress/YOOtheme. MVP shipped in ~1 month with minimal bugs.",
+    link: "/cases/cloud-first.pdf",
   },
 ];
 
@@ -505,291 +547,359 @@ export default function IndustrialPortfolio() {
     setSelected((s) => (s.includes(t) ? s.filter((x) => x !== t) : [...s, t]));
 
   return (
-    <div className="min-h-screen bg-white text-black">
-      {/* Grid background — thin 1px grid, purely decorative */}
+    <div className="min-w-screen bg-white text-black">
+      {/* Grid overlay — sits above page background, below all content */}
       <div
-        className="pointer-events-none fixed inset-0 [background:repeating-linear-gradient(0deg,#e5e5e5_0px,#e5e5e5_1px,transparent_1px,transparent_24px),repeating-linear-gradient(90deg,#f0f0f0_0px,#f0f0f0_1px,transparent_1px,transparent_24px)]"
+        id="bg-pattern"
+        className="pointer-events-none fixed inset-0 z-0 [background:repeating-linear-gradient(0deg,#e5e5e5_0px,#e5e5e5_1px,transparent_1px,transparent_24px),repeating-linear-gradient(90deg,#f0f0f0_0px,#f0f0f0_1px,transparent_1px,transparent_24px)]"
         aria-hidden
       />
-
-      {/* Top label header — all squared; nav chips are square too */}
-      <header className="sticky top-0 z-40 border-b border-black bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/70">
-        <div className="mx-auto max-w-6xl px-4 py-3 flex items-center gap-4">
-          <div className="shrink-0 w-24">
-            <Barcode value="PORTFOLIO/LOT-001" height={40} />
-          </div>
-          <div className="flex-1 leading-tight">
-            <h1 className="font-black uppercase tracking-[-0.02em] text-[clamp(18px,2.6vw,28px)]">
-              Utilitarian Portfolio: Technical Aesthetic
-            </h1>
-            <p className="uppercase text-[10px]">
-              spec: bw/hi-contrast · grid: 24px · medium: web · origin: earth ·
-              qc: passed
-            </p>
-          </div>
-          <nav className="hidden md:flex items-center gap-3 text-[11px] uppercase">
-            <a
-              href="#work"
-              className="px-2 py-1 border border-black hover:bg-black hover:text-white"
-            >
-              Work
-            </a>
-            <a
-              href="#about"
-              className="px-2 py-1 border border-black hover:bg-black hover:text-white"
-            >
-              About
-            </a>
-            <a
-              href="#contact"
-              className="px-2 py-1 border border-black hover:bg-black hover:text-white"
-            >
-              Contact
-            </a>
-          </nav>
-        </div>
-      </header>
-
-      {/* Hero slab */}
-      <section className="mx-auto max-w-6xl px-4 py-10 grid md:grid-cols-[1fr_auto] gap-8 items-start">
-        <div className="grid gap-4">
-          <div className="border border-black p-4">
-            <h2 className="font-black uppercase text-[clamp(24px,6vw,72px)] leading-[0.95] tracking-tight">
-              Brutalist, Minimal, Systematic.
-            </h2>
-            <p className="mt-3 max-w-[60ch] text-[15px] md:text-base font-medium">
-              I build typography‑driven interfaces and industrial brand systems.
-              This template leans into label codes, strict grids, and honest
-              black/white contrast for a durable portfolio presence.
-            </p>
-            <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] uppercase">
-              <span className="px-2 py-1 border border-black">
-                performance ≤ 1s lcp
-              </span>
-              <span className="px-2 py-1 border border-black">a11y AA</span>
-              <span className="px-2 py-1 border border-black">
-                responsive grid
-              </span>
-              <span className="px-2 py-1 border border-black">2025-ready</span>
+      {/* Content wrapper ensures everything stays above the overlay */}
+      <div className="relative z-10">
+        {/* Top label header — all squared; nav chips are square too */}
+        <header className="sticky top-0 z-40 border-b border-black bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/70">
+          <div className="mx-auto max-w-6xl px-4 py-3 flex items-center gap-4">
+            <div className="flex-1 leading-tight">
+              <h1 className="font-black tracking-[-0.02em] text-[clamp(18px,2.6vw,28px)]">
+                Nestors Kuliks
+              </h1>
+              <p className="uppercase text-[10px]">Designer / Web‑Developer</p>
             </div>
+            <nav className="hidden md:flex items-center gap-3 text-[11px] uppercase">
+              <a
+                href="#work"
+                className="px-2 py-1 border border-black hover:bg-black hover:text-white"
+              >
+                Work
+              </a>
+              <a
+                href="#about"
+                className="px-2 py-1 border border-black hover:bg-black hover:text-white"
+              >
+                About
+              </a>
+              <a
+                href="#contact"
+                className="px-2 py-1 border border-black hover:bg-black hover:text-white"
+              >
+                Contact
+              </a>
+            </nav>
           </div>
-          <div className="grid sm:grid-cols-3 gap-4">
-            <div className="border border-black p-3">
-              <p className="text-[10px] uppercase">version</p>
-              <p className="font-mono text-xl">v1.0.0</p>
-            </div>
-            <div className="border border-black p-3">
-              <p className="text-[10px] uppercase">lot</p>
-              <p className="font-mono text-xl">B15D305</p>
-            </div>
-            <div className="border border-black p-3">
-              <p className="text-[10px] uppercase">date</p>
-              <p className="font-mono text-xl">
-                {new Date().toISOString().slice(0, 10)}
+        </header>
+        {/* Hero slab */}
+        <section className="mx-auto max-w-6xl px-4 py-10 grid md:grid-cols-[1fr_auto] gap-8 items-start">
+          <div className="grid gap-4">
+            <div>
+              <h2 className="font-black text-[clamp(24px,6vw,72px)] leading-[0.95] tracking-tight">
+                Making the complex simple, building conversations, and creating
+                lasting impressions.
+              </h2>
+              <p className="mt-3 max-w-[60ch] text-[15px] md:text-base font-medium">
+                I design and build user‑centric interfaces for web and mobile. I
+                simplify complex systems into intuitive, engaging experiences by
+                combining user research, interaction design, design systems, and
+                front‑end development.
               </p>
-            </div>
-          </div>
-        </div>
-        <div className="flex flex-col items-center gap-3">
-          <RealQR data="mailto:contact@yourname" />
-          <p className="text-[10px] uppercase">
-            scan to contact · fallback safe
-          </p>
-        </div>
-      </section>
-
-      {/* Controls */}
-      <section id="work" className="mx-auto max-w-6xl px-4 pb-3">
-        <div className="flex flex-wrap items-center gap-3 border border-black p-3">
-          {/* Search box */}
-          <label className="flex items-center gap-2 bg-white border border-black px-3 py-2">
-            <Filter size={16} />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search projects…"
-              className="outline-none placeholder-black/40 bg-transparent text-sm"
-            />
-          </label>
-
-          {/* Tag filters */}
-          <div className="flex flex-wrap gap-2">
-            {allTags.map((t) => (
-              <button
-                key={t}
-                onClick={() => toggleTag(t)}
-                className={`px-2 py-1 text-[11px] uppercase border border-black ${
-                  selected.includes(t) ? "bg-black text-white" : "bg-white"
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-            {selected.length > 0 && (
-              <button
-                onClick={() => setSelected([])}
-                className="px-2 py-1 text-[11px] uppercase border border-dashed border-black"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-
-          <span className="ml-auto text-[11px] uppercase">
-            {projects.length} / {DEMO.length} shown
-          </span>
-        </div>
-      </section>
-
-      {/* Projects grid */}
-      <section className="mx-auto max-w-6xl px-4 pb-16">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <AnimatePresence mode="popLayout">
-            {projects.map((p) => (
-              <ProjectCard key={p.id} p={p} />
-            ))}
-          </AnimatePresence>
-        </div>
-      </section>
-
-      {/* About / Credentials */}
-      <section
-        id="about"
-        className="mx-auto max-w-6xl px-4 pb-16 grid lg:grid-cols-3 gap-8 items-start"
-      >
-        <div className="border border-black p-5 bg-white">
-          <h3 className="font-black uppercase text-2xl">About</h3>
-          <p className="mt-3 font-medium max-w-prose">
-            Designer/engineer focused on utilitarian visual systems. I like
-            grids, label vernacular, and readable code. I work end‑to‑end:
-            research → IA → UI → engineering → performance QA.
-          </p>
-          <ul className="mt-4 grid sm:grid-cols-2 gap-2 text-[12px]">
-            <li className="border border-black p-2">
-              Grid discipline: <b>24px</b> baseline
-            </li>
-            <li className="border border-black p-2">
-              Type stack: <b>Inter / Mono</b>
-            </li>
-            <li className="border border-black p-2">
-              Perf budget: <b>170kb</b> JS
-            </li>
-            <li className="border border-black p-2">
-              A11y: <b>Keyboard + SR</b>
-            </li>
-          </ul>
-        </div>
-        <div className="border border-black p-5 bg-white">
-          <h3 className="font-black uppercase text-2xl">Services</h3>
-          <div className="mt-3 grid gap-2 text-[12px]">
-            {[
-              "Design systems & tokens",
-              "Identity & industrial brand",
-              "Data visualization & dashboards",
-              "Web apps (Next.js) with performance SLAs",
-            ].map((s, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between border border-black p-3"
-              >
-                <span className="uppercase">{s}</span>
-                <span className="font-mono">
-                  SVC-{(i + 1).toString().padStart(3, "0")}
+              <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] uppercase">
+                <span className="px-2 py-1 border border-black">
+                  User research & usability
+                </span>
+                <span className="px-2 py-1 border border-black">
+                  Design systems
+                </span>
+                <span className="px-2 py-1 border border-black">
+                  Front‑end development
+                </span>
+                <span className="px-2 py-1 border border-black">
+                  Service design
                 </span>
               </div>
-            ))}
-          </div>
-        </div>
-        <div className="border border-black p-5 bg-white">
-          <h3 className="font-black uppercase text-2xl">Credentials</h3>
-          <ol className="mt-3 space-y-2 text-[12px]">
-            <li className="border border-black p-3 flex items-center justify-between">
-              <span>HSE · Visual Research in Utilitarian Design</span>
-              <span className="font-mono">DOC‑2018</span>
-            </li>
-            <li className="border border-black p-3 flex items-center justify-between">
-              <span>Data‑Aesthetic Thesis · Bartlett</span>
-              <span className="font-mono">TH‑2017</span>
-            </li>
-            <li className="border border-black p-3 flex items-center justify-between">
-              <span>WCAG 2.2 Practitioner</span>
-              <span className="font-mono">CERT‑AA</span>
-            </li>
-          </ol>
-          <a
-            href="#"
-            className="mt-4 inline-flex items-center gap-2 px-3 py-2 border border-black uppercase text-[11px] font-bold hover:bg-black hover:text-white"
-          >
-            <Download size={16} /> Download Resume
-          </a>
-        </div>
-      </section>
-
-      {/* Contact */}
-      <footer id="contact" className="border-t border-black bg-white/80">
-        <div className="mx-auto max-w-6xl px-4 py-10 grid md:grid-cols-[1fr_auto] gap-6 items-start">
-          <div>
-            <h3 className="font-black uppercase text-2xl">Contact</h3>
-            <p className="mt-2 text-sm max-w-prose">
-              Available for select collaborations. Quote number on
-              correspondence for faster routing.
-            </p>
-            <div className="mt-4 grid sm:grid-cols-3 gap-3 text-[12px]">
+            </div>
+            <div className="grid sm:grid-cols-3 gap-4">
               <div className="border border-black p-3">
-                <p className="uppercase">Primary</p>
-                <a
-                  className="font-mono flex items-center gap-2 mt-1 hover:underline"
-                  href="mailto:contact@yourname"
-                >
-                  {" "}
-                  <Mail size={16} /> contact@yourname
-                </a>
+                <p className="text-[10px] uppercase">version</p>
+                <p className="font-mono text-xl">v1.0.0</p>
               </div>
               <div className="border border-black p-3">
-                <p className="uppercase">Networks</p>
-                <div className="flex items-center gap-3 mt-1">
-                  <a className="font-mono hover:underline" href="#">
-                    <Github size={16} className="inline" /> GitHub
-                  </a>
-                  <a className="font-mono hover:underline" href="#">
-                    <Linkedin size={16} className="inline" /> LinkedIn
-                  </a>
-                </div>
+                <p className="text-[10px] uppercase">lot</p>
+                <p className="font-mono text-xl">P0R7F0L1O</p>
               </div>
               <div className="border border-black p-3">
-                <p className="uppercase">Quote</p>
-                <p className="font-mono">RFQ‑{new Date().getFullYear()}‑001</p>
+                <p className="text-[10px] uppercase">date</p>
+                <p className="font-mono text-xl">
+                  {new Date().toISOString().slice(0, 10)}
+                </p>
               </div>
             </div>
           </div>
-          <div className="w-32 self-center md:self-start">
-            <Barcode value="MADE‑IN‑WEB/CE" height={80} />
-            <p className="text-[10px] uppercase text-center mt-1">
-              made in web · ce
+          <div className="flex z-10 flex-col items-center gap-3">
+            <RealQR data="mailto:nestor.kulik@gmail.com" />
+            <p className="text-[10px] uppercase">
+              scan to contact · fallback safe
             </p>
           </div>
-        </div>
-        <div className="border-t border-black py-4 text-center text-[10px] uppercase">
-          © {new Date().getFullYear()} Your Name — utilitarian portfolio · all
-          rights reserved
-        </div>
-      </footer>
+        </section>
+        {/* Controls */}
+        <section id="work" className="mx-auto max-w-6xl px-4 pb-3">
+          <div className="flex flex-wrap items-center gap-3 py-3 z-10">
+            {/* Search box */}
+            <label className="flex items-center gap-2 bg-white border border-black h-10 px-3">
+              <Filter size={16} />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search projects…"
+                className="outline-none placeholder-black/40 bg-transparent text-sm"
+              />
+            </label>
 
-      {/* Accessibility: skip link */}
-      <a
-        href="#work"
-        className="sr-only focus:not-sr-only fixed top-2 left-2 bg-white border border-black px-3 py-2 text-[12px]"
-      >
-        Skip to work
-      </a>
-
-      {/* Print styles: force 1‑bit for clean hardcopies */}
-      <style>{`
-        @media print { 
-          * { color: #000 !important; background: #fff !important; box-shadow: none !important; }
-          a::after { content: " (" attr(href) ")"; font-size: 10px; }
-        }
-      `}</style>
+            {/* Tag filters */}
+            <div className="flex flex-wrap gap-2">
+              {allTags.map((t) => (
+                <button
+                  key={t}
+                  onClick={() => toggleTag(t)}
+                  className={`inline-flex items-center h-10 px-3 text-[11px] uppercase border border-black ${
+                    selected.includes(t) ? "bg-black text-white" : "bg-white"
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+              {selected.length > 0 && (
+                <button
+                  onClick={() => setSelected([])}
+                  className="inline-flex items-center h-10 px-3 text-[11px] uppercase border border-dashed border-black"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+          </div>
+        </section>
+        {/* Projects grid */}
+        <section className="mx-auto max-w-6xl px-4 pb-16">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <AnimatePresence mode="popLayout">
+              {projects.map((p) => (
+                <ProjectCard key={p.id} p={p} />
+              ))}
+            </AnimatePresence>
+          </div>
+        </section>
+        {/* About / Credentials */}
+        <section
+          id="about"
+          className="mx-auto max-w-6xl px-4 pb-16 grid lg:grid-cols-3 gap-8 items-stretch"
+        >
+          <div className="border border-black p-5 bg-white flex flex-col justify-between">
+            <div className="flex flex-col gap-3">
+              <h3 className="font-black uppercase text-2xl">About</h3>
+              <p className=" font-medium max-w-prose">
+                Agile UX/UI designer & web‑developer. I make complex products
+                simple by pairing research with interaction design, design
+                systems, and front‑end craft.
+              </p>
+            </div>
+            <ul className="mt-4 grid sm:grid-cols-2 gap-2 text-[12px]">
+              <li className="border border-black p-2">
+                Location: <b>Europe (GMT+3)</b>
+              </li>
+              <li className="border border-black p-2">
+                Email:{" "}
+                <a
+                  href="mailto:nestor.kulik@gmail.com"
+                  className="underline font-mono"
+                >
+                  nestor.kulik@gmail.com
+                </a>
+              </li>
+              <li className="border border-black p-2">
+                Phone:{" "}
+                <a href="tel:+4571405920" className="underline font-mono">
+                  +45 71 40 59 20
+                </a>
+              </li>
+              <li className="border border-black p-2">
+                Website:{" "}
+                <a
+                  href="https://nestux.site"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline font-mono"
+                >
+                  nestux.site
+                </a>
+              </li>
+            </ul>
+          </div>
+          <div className="border border-black p-5 bg-white">
+            <h3 className="font-black uppercase text-2xl">Skills</h3>
+            <div className="mt-3 grid gap-2 text-[12px]">
+              {[
+                {
+                  name: "User Research & Usability",
+                  desc: "Interviews, analysis, heatmaps, journeys, usability tests",
+                },
+                {
+                  name: "Front‑End Development",
+                  desc: "HTML, CSS, WordPress, Bootstrap, Power Apps, SharePoint, Mendix, OutSystems",
+                },
+                {
+                  name: "Service Design",
+                  desc: "Card sorting, storytelling, service blueprints, CX",
+                },
+                {
+                  name: "Interaction Design & Design Systems",
+                  desc: "IA, task flows, wireframing, responsive UI, tokens & components",
+                },
+                {
+                  name: "Motion Design & VFX",
+                  desc: "UI motion, 2D graphics, editing, VFX",
+                },
+                {
+                  name: "Graphic & Visual Design",
+                  desc: "Color, composition, typography, branding, print, decks",
+                },
+              ].map((s, i) => (
+                <div key={i} className="border border-black p-3">
+                  <div className="uppercase font-semibold">{s.name}</div>
+                  <div className="text-[11px] mt-1 opacity-80">{s.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="border border-black p-5 bg-white flex flex-col justify-between">
+            <div>
+              <h3 className="font-black uppercase text-2xl">Experience</h3>
+              <ol className="mt-3 space-y-3 text-[12px]">
+                <li className="border border-black p-3">
+                  <div className="flex items-center justify-between">
+                    <span>Design System Engineer — Ennova ApS</span>
+                    <span className="font-mono">01/2025 – Present</span>
+                  </div>
+                  <ul className="list-disc pl-5 mt-2 space-y-1">
+                    <li>
+                      Reusable components adopted by 3+ teams; enforced
+                      standards, tokens, naming best practices.
+                    </li>
+                    <li>
+                      Maintained library with docs/versioning; ran 2 onboarding
+                      workshops and demos.
+                    </li>
+                  </ul>
+                </li>
+                <li className="border border-black p-3">
+                  <div className="flex items-center justify-between">
+                    <span>Design Engineer — Aurora Marketplace</span>
+                    <span className="font-mono">11/2024 – Present</span>
+                  </div>
+                  <ul className="list-disc pl-5 mt-2 space-y-1">
+                    <li>
+                      Scalable design system across teams; improved design
+                      consistency and efficiency.
+                    </li>
+                    <li>
+                      User research (interviews, surveys, usability testing);
+                      iterated flows to raise satisfaction.
+                    </li>
+                  </ul>
+                </li>
+                <li className="border border-black p-3">
+                  <div className="flex items-center justify-between">
+                    <span>Cloud First Nordics — Accenture</span>
+                    <span className="font-mono">02/2023 – 09/2023</span>
+                  </div>
+                  <ul className="list-disc pl-5 mt-2 space-y-1">
+                    <li>
+                      Wireframes & prototypes; stakeholder alignment; balanced
+                      business and user needs.
+                    </li>
+                    <li>
+                      Shipped responsive websites (WordPress/YOOtheme);
+                      marketing & process support.
+                    </li>
+                  </ul>
+                </li>
+              </ol>
+              <a
+                href="/cv.pdf"
+                className="mt-4 inline-flex items-center gap-2 px-3 py-2 border border-black uppercase text-[11px] font-bold hover:bg-black hover:text-white"
+              >
+                <Download size={16} /> Download CV
+              </a>
+            </div>
+          </div>
+        </section>
+        {/* Contact */}
+        <footer id="contact" className="border-t border-black bg-white/80">
+          <div className="mx-auto max-w-6xl px-4 py-10 grid md:grid-cols-[1fr_auto] gap-6 items-start">
+            <div>
+              <h3 className="font-black uppercase text-2xl">Contact</h3>
+              <p className="mt-2 text-sm max-w-prose">
+                Available for select collaborations. Quote number on
+                correspondence for faster routing.
+              </p>
+              <div className="mt-4 grid sm:grid-cols-3 gap-3 text-[12px]">
+                <div className="border border-black p-3">
+                  <p className="uppercase">Primary</p>
+                  <a
+                    className="font-mono flex items-center gap-2 mt-1 hover:underline"
+                    href="mailto:nestor.kulik@gmail.com"
+                  >
+                    <Mail size={16} /> nestor.kulik@gmail.com
+                  </a>
+                  <a
+                    className="font-mono flex items-center gap-2 mt-1 hover:underline"
+                    href="tel:+4571405920"
+                  >
+                    +45 71 40 59 20
+                  </a>
+                </div>
+                <div className="border border-black p-3">
+                  <p className="uppercase">Website</p>
+                  <a
+                    className="font-mono hover:underline"
+                    href="https://nestux.site"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    nestux.site
+                  </a>
+                </div>
+                <div className="border border-black p-3">
+                  <p className="uppercase">Quote</p>
+                  <p className="font-mono">
+                    RFQ‑{new Date().getFullYear()}‑001
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="w-32 self-center md:self-start">
+              <Barcode value="MADE‑IN‑WEB/CE" height={80} />
+              <p className="text-[10px] text-center mt-1">Europe (GMT+3)</p>
+            </div>
+          </div>
+          <div className="border-t border-black py-4 text-center text-[14px] ">
+            © {new Date().getFullYear()} Nestors Kuliks · All rights reserved
+          </div>
+        </footer>
+        {/* Accessibility: skip link */}
+        <a
+          href="#work"
+          className="sr-only focus:not-sr-only fixed top-2 left-2 bg-white border border-black px-3 py-2 text-[12px]"
+        >
+          Skip to work
+        </a>
+        {/* Print styles: force 1‑bit for clean hardcopies */}
+        <style>{`
+          @media print { 
+            * { color: #000 !important; background: #fff !important; box-shadow: none !important; }
+            a::after { content: " (" attr(href) ")"; font-size: 10px; }
+          }
+        `}</style>
+      </div>
     </div>
   );
 }
