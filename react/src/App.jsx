@@ -1,5 +1,17 @@
-import React, { useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, {
+  useMemo,
+  useState,
+  useEffect,
+  useRef,
+  createContext,
+  useContext,
+} from "react";
+import {
+  motion,
+  AnimatePresence,
+  useMotionValue,
+  useTransform,
+} from "framer-motion";
 import {
   Mail,
   Github,
@@ -216,6 +228,106 @@ const thermalPaperBg = {
   backgroundRepeat: "repeat, no-repeat",
   backgroundPosition: "0 0, 0 0",
 };
+
+// ------------------------------------------------------
+// MagneticBackground (replaces the static grid background)
+// Adapted from your snippet to work with framer-motion v12
+// ------------------------------------------------------
+function useViewportGrid(cell = 40) {
+  const [dims, setDims] = useState({ width: 0, height: 0, cols: 0, rows: 0 });
+  useEffect(() => {
+    const measure = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const cols = Math.max(1, Math.floor(width / cell));
+      const rows = Math.max(1, Math.floor(height / cell));
+      setDims({ width, height, cols, rows });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [cell]);
+  return dims;
+}
+
+function useElementCenter(ref) {
+  const [center, setCenter] = useState(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => {
+      const rect = el.getBoundingClientRect();
+      setCenter({
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [ref]);
+  return center;
+}
+
+const PointerContext = createContext(null);
+function usePointer() {
+  const ctx = useContext(PointerContext);
+  if (!ctx) throw new Error("MagneticBackground: PointerContext missing");
+  return ctx;
+}
+
+function Filing({ color = "#D1D5DB", thickness = 1 }) {
+  const { x: pointerX, y: pointerY } = usePointer();
+  const ref = useRef(null);
+  const center = useElementCenter(ref);
+  // Derived rotation based on pointer → element center vector
+  const rotate = useTransform(() => {
+    if (!center) return 0;
+    const dx = pointerX.get() - center.x;
+    const dy = pointerY.get() - center.y;
+    return Math.atan2(dy, dx) * (180 / Math.PI);
+  });
+  return (
+    <motion.div
+      ref={ref}
+      className="mag-filing"
+      style={{ rotate, backgroundColor: color, height: thickness }}
+    />
+  );
+}
+
+function MagneticBackground({ cell = 40, color = "#E5E7EB", thickness = 1 }) {
+  const { cols, rows } = useViewportGrid(cell);
+  const total = useMemo(() => cols * rows, [cols, rows]);
+  // Window-level pointer tracker
+  const px = useMotionValue(0);
+  const py = useMotionValue(0);
+  useEffect(() => {
+    const onMove = (e) => {
+      px.set(e.clientX);
+      py.set(e.clientY);
+    };
+    window.addEventListener("pointermove", onMove);
+    return () => window.removeEventListener("pointermove", onMove);
+  }, [px, py]);
+  return (
+    <PointerContext.Provider value={{ x: px, y: py }}>
+      <div className="magnetic-bg" aria-hidden>
+        <div className="mag-grid" style={{ "--cols": cols, "--rows": rows }}>
+          {Array.from({ length: total }).map((_, i) => (
+            <Filing key={i} color={color} thickness={thickness} />
+          ))}
+        </div>
+        <style>{`
+          .magnetic-bg { position: fixed; inset: 0; background: #fff; pointer-events: none; z-index: 0; }
+          .mag-grid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(var(--cols), 1fr); grid-template-rows: repeat(var(--rows), 1fr); }
+          .mag-filing { width: 70%; border-radius: 2px; justify-self: center; align-self: center; transform-origin: 50% 50%; will-change: transform; }
+          @media (max-width: 640px) { .mag-filing { width: 66%; } }
+        `}</style>
+      </div>
+    </PointerContext.Provider>
+  );
+}
 
 // -----------------------------
 // Services → "products" derivation helpers
@@ -522,9 +634,88 @@ const DEMO = [
 // -----------------------------
 const allTags = Array.from(new Set(DEMO.flatMap((p) => p.tags || [])));
 
+// -----------------------------
+// GSAP ScrollSmoother (progressive enhancement)
+// -----------------------------
+function useGsapSmoother({
+  smooth = 1.2,
+  effects = true,
+  normalizeScroll = true,
+  wrapper = "#smooth-wrapper",
+  content = "#smooth-content",
+  gsapSrc = "/gsap.min.js",
+  pluginSrc = "/ScrollSmoother.min.js",
+} = {}) {
+  useEffect(() => {
+    let smoother;
+
+    const loadScript = (src) =>
+      new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = src;
+        s.async = true;
+        s.onload = () => resolve(true);
+        s.onerror = () => reject(new Error("Failed to load " + src));
+        document.head.appendChild(s);
+      });
+
+    const ensureGsap = async () => {
+      if (window.gsap) return true;
+      try {
+        await loadScript(gsapSrc);
+      } catch {
+        await loadScript(
+          "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"
+        );
+      }
+      return !!window.gsap;
+    };
+
+    const ensureSmoother = async () => {
+      if (window.ScrollSmoother) return true;
+      try {
+        await loadScript(pluginSrc);
+      } catch (e) {
+        console.warn("ScrollSmoother plugin not found at", pluginSrc, e);
+        return false;
+      }
+      return !!window.ScrollSmoother;
+    };
+
+    const init = async () => {
+      const okGsap = await ensureGsap();
+      const okPlugin = await ensureSmoother();
+      if (!okGsap || !okPlugin) return;
+      try {
+        window.gsap.registerPlugin(window.ScrollSmoother);
+        smoother = window.ScrollSmoother.create({
+          wrapper,
+          content,
+          smooth,
+          effects,
+          normalizeScroll,
+        });
+        window.__smoother = smoother;
+      } catch (err) {
+        console.warn("ScrollSmoother init failed", err);
+      }
+    };
+
+    if (typeof window !== "undefined") init();
+    return () => {
+      try {
+        smoother?.kill?.();
+      } catch {}
+    };
+  }, [smooth, effects, normalizeScroll, wrapper, content, gsapSrc, pluginSrc]);
+}
+
 export default function IndustrialPortfolio() {
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState([]);
+
+  // Initialize GSAP ScrollSmoother (looks for /gsap.min.js and /ScrollSmoother.min.js in public/)
+  useGsapSmoother({ smooth: 1.2, effects: true, normalizeScroll: true });
 
   /**
    * Filtering is tiny but memoized:
@@ -547,358 +738,324 @@ export default function IndustrialPortfolio() {
     setSelected((s) => (s.includes(t) ? s.filter((x) => x !== t) : [...s, t]));
 
   return (
-    <div className="min-w-screen bg-white text-black">
+    <div id="smooth-wrapper" className="fixed inset-0 overflow-hidden">
       {/* Grid overlay — sits above page background, below all content */}
-      <div
-        id="bg-pattern"
-        className="pointer-events-none fixed inset-0 z-0 [background:repeating-linear-gradient(0deg,#e5e5e5_0px,#e5e5e5_1px,transparent_1px,transparent_24px),repeating-linear-gradient(90deg,#f0f0f0_0px,#f0f0f0_1px,transparent_1px,transparent_24px)]"
-        aria-hidden
-      />
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <MagneticBackground cell={44} color="#E5E7EB" thickness={1} />
+      </div>
       {/* Content wrapper ensures everything stays above the overlay */}
-      <div className="relative z-10">
-        {/* Top label header — all squared; nav chips are square too */}
-        <header className="sticky top-0 z-40 border-b border-black bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/70">
-          <div className="mx-auto max-w-6xl px-4 py-3 flex items-center gap-4">
-            <div className="flex-1 leading-tight">
-              <h1 className="font-black tracking-[-0.02em] text-[clamp(18px,2.6vw,28px)]">
-                Nestors Kuliks
-              </h1>
-              <p className="uppercase text-[10px]">Designer / Web‑Developer</p>
-            </div>
-            <nav className="hidden md:flex items-center gap-3 text-[11px] uppercase">
-              <a
-                href="#work"
-                className="px-2 py-1 border border-black hover:bg-black hover:text-white"
-              >
-                Work
-              </a>
-              <a
-                href="#about"
-                className="px-2 py-1 border border-black hover:bg-black hover:text-white"
-              >
-                About
-              </a>
-              <a
-                href="#contact"
-                className="px-2 py-1 border border-black hover:bg-black hover:text-white"
-              >
-                Contact
-              </a>
-            </nav>
-          </div>
-        </header>
-        {/* Hero slab */}
-        <section className="mx-auto max-w-6xl px-4 py-10 grid md:grid-cols-[1fr_auto] gap-8 items-start">
-          <div className="grid gap-4">
-            <div>
-              <h2 className="font-black text-[clamp(24px,6vw,72px)] leading-[0.95] tracking-tight">
-                Making the complex simple, building conversations, and creating
-                lasting impressions.
-              </h2>
-              <p className="mt-3 max-w-[60ch] text-[15px] md:text-base font-medium">
-                I design and build user‑centric interfaces for web and mobile. I
-                simplify complex systems into intuitive, engaging experiences by
-                combining user research, interaction design, design systems, and
-                front‑end development.
-              </p>
-              <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] uppercase">
-                <span className="px-2 py-1 border border-black">
-                  User research & usability
-                </span>
-                <span className="px-2 py-1 border border-black">
-                  Design systems
-                </span>
-                <span className="px-2 py-1 border border-black">
-                  Front‑end development
-                </span>
-                <span className="px-2 py-1 border border-black">
-                  Service design
-                </span>
-              </div>
-            </div>
-            <div className="grid sm:grid-cols-3 gap-4">
-              <div className="border border-black p-3">
-                <p className="text-[10px] uppercase">version</p>
-                <p className="font-mono text-xl">v1.0.0</p>
-              </div>
-              <div className="border border-black p-3">
-                <p className="text-[10px] uppercase">lot</p>
-                <p className="font-mono text-xl">P0R7F0L1O</p>
-              </div>
-              <div className="border border-black p-3">
-                <p className="text-[10px] uppercase">date</p>
-                <p className="font-mono text-xl">
-                  {new Date().toISOString().slice(0, 10)}
+      <div id="smooth-content" className="min-w-screen bg-white text-black">
+        <div className="relative z-10">
+          {/* Top label header — all squared; nav chips are square too */}
+          <header className="sticky top-0 z-40 border-b border-black bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/70">
+            <div className="mx-auto max-w-6xl px-4 py-3 flex items-center gap-4">
+              <div className="flex-1 leading-tight">
+                <h1 className="font-black tracking-[-0.02em] text-[clamp(18px,2.6vw,28px)]">
+                  neStudio
+                </h1>
+                <p className="uppercase text-[10px]">
+                  Web development and design studio
                 </p>
               </div>
-            </div>
-          </div>
-          <div className="flex z-10 flex-col items-center gap-3">
-            <RealQR data="mailto:nestor.kulik@gmail.com" />
-            <p className="text-[10px] uppercase">
-              scan to contact · fallback safe
-            </p>
-          </div>
-        </section>
-        {/* Controls */}
-        <section id="work" className="mx-auto max-w-6xl px-4 pb-3">
-          <div className="flex flex-wrap items-center gap-3 py-3 z-10">
-            {/* Search box */}
-            <label className="flex items-center gap-2 bg-white border border-black h-10 px-3">
-              <Filter size={16} />
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search projects…"
-                className="outline-none placeholder-black/40 bg-transparent text-sm"
-              />
-            </label>
-
-            {/* Tag filters */}
-            <div className="flex flex-wrap gap-2">
-              {allTags.map((t) => (
-                <button
-                  key={t}
-                  onClick={() => toggleTag(t)}
-                  className={`inline-flex items-center h-10 px-3 text-[11px] uppercase border border-black ${
-                    selected.includes(t) ? "bg-black text-white" : "bg-white"
-                  }`}
-                >
-                  {t}
-                </button>
-              ))}
-              {selected.length > 0 && (
-                <button
-                  onClick={() => setSelected([])}
-                  className="inline-flex items-center h-10 px-3 text-[11px] uppercase border border-dashed border-black"
-                >
-                  <X size={16} />
-                </button>
-              )}
-            </div>
-          </div>
-        </section>
-        {/* Projects grid */}
-        <section className="mx-auto max-w-6xl px-4 pb-16">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <AnimatePresence mode="popLayout">
-              {projects.map((p) => (
-                <ProjectCard key={p.id} p={p} />
-              ))}
-            </AnimatePresence>
-          </div>
-        </section>
-        {/* About / Credentials */}
-        <section
-          id="about"
-          className="mx-auto max-w-6xl px-4 pb-16 grid lg:grid-cols-3 gap-8 items-stretch"
-        >
-          <div className="border border-black p-5 bg-white flex flex-col justify-between">
-            <div className="flex flex-col gap-3">
-              <h3 className="font-black uppercase text-2xl">About</h3>
-              <p className=" font-medium max-w-prose">
-                Agile UX/UI designer & web‑developer. I make complex products
-                simple by pairing research with interaction design, design
-                systems, and front‑end craft.
-              </p>
-            </div>
-            <ul className="mt-4 grid sm:grid-cols-2 gap-2 text-[12px]">
-              <li className="border border-black p-2">
-                Location: <b>Europe (GMT+3)</b>
-              </li>
-              <li className="border border-black p-2">
-                Email:{" "}
+              <nav className="hidden md:flex items-center gap-3 text-[11px] uppercase">
                 <a
-                  href="mailto:nestor.kulik@gmail.com"
-                  className="underline font-mono"
+                  href="#work"
+                  className="px-2 py-1 border border-black hover:bg-black hover:text-white"
                 >
-                  nestor.kulik@gmail.com
+                  Work
                 </a>
-              </li>
-              <li className="border border-black p-2">
-                Phone:{" "}
-                <a href="tel:+4571405920" className="underline font-mono">
-                  +45 71 40 59 20
-                </a>
-              </li>
-              <li className="border border-black p-2">
-                Website:{" "}
                 <a
-                  href="https://nestux.site"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline font-mono"
+                  href="#about"
+                  className="px-2 py-1 border border-black hover:bg-black hover:text-white"
                 >
-                  nestux.site
+                  About
                 </a>
-              </li>
-            </ul>
-          </div>
-          <div className="border border-black p-5 bg-white">
-            <h3 className="font-black uppercase text-2xl">Skills</h3>
-            <div className="mt-3 grid gap-2 text-[12px]">
-              {[
-                {
-                  name: "User Research & Usability",
-                  desc: "Interviews, analysis, heatmaps, journeys, usability tests",
-                },
-                {
-                  name: "Front‑End Development",
-                  desc: "HTML, CSS, WordPress, Bootstrap, Power Apps, SharePoint, Mendix, OutSystems",
-                },
-                {
-                  name: "Service Design",
-                  desc: "Card sorting, storytelling, service blueprints, CX",
-                },
-                {
-                  name: "Interaction Design & Design Systems",
-                  desc: "IA, task flows, wireframing, responsive UI, tokens & components",
-                },
-                {
-                  name: "Motion Design & VFX",
-                  desc: "UI motion, 2D graphics, editing, VFX",
-                },
-                {
-                  name: "Graphic & Visual Design",
-                  desc: "Color, composition, typography, branding, print, decks",
-                },
-              ].map((s, i) => (
-                <div key={i} className="border border-black p-3">
-                  <div className="uppercase font-semibold">{s.name}</div>
-                  <div className="text-[11px] mt-1 opacity-80">{s.desc}</div>
-                </div>
-              ))}
+                <a
+                  href="#contact"
+                  className="px-2 py-1 border border-black hover:bg-black hover:text-white"
+                >
+                  Contact
+                </a>
+              </nav>
             </div>
-          </div>
-          <div className="border border-black p-5 bg-white flex flex-col justify-between">
-            <div>
-              <h3 className="font-black uppercase text-2xl">Experience</h3>
-              <ol className="mt-3 space-y-3 text-[12px]">
-                <li className="border border-black p-3">
-                  <div className="flex items-center justify-between">
-                    <span>Design System Engineer — Ennova ApS</span>
-                    <span className="font-mono">01/2025 – Present</span>
-                  </div>
-                  <ul className="list-disc pl-5 mt-2 space-y-1">
-                    <li>
-                      Reusable components adopted by 3+ teams; enforced
-                      standards, tokens, naming best practices.
-                    </li>
-                    <li>
-                      Maintained library with docs/versioning; ran 2 onboarding
-                      workshops and demos.
-                    </li>
-                  </ul>
-                </li>
-                <li className="border border-black p-3">
-                  <div className="flex items-center justify-between">
-                    <span>Design Engineer — Aurora Marketplace</span>
-                    <span className="font-mono">11/2024 – Present</span>
-                  </div>
-                  <ul className="list-disc pl-5 mt-2 space-y-1">
-                    <li>
-                      Scalable design system across teams; improved design
-                      consistency and efficiency.
-                    </li>
-                    <li>
-                      User research (interviews, surveys, usability testing);
-                      iterated flows to raise satisfaction.
-                    </li>
-                  </ul>
-                </li>
-                <li className="border border-black p-3">
-                  <div className="flex items-center justify-between">
-                    <span>Cloud First Nordics — Accenture</span>
-                    <span className="font-mono">02/2023 – 09/2023</span>
-                  </div>
-                  <ul className="list-disc pl-5 mt-2 space-y-1">
-                    <li>
-                      Wireframes & prototypes; stakeholder alignment; balanced
-                      business and user needs.
-                    </li>
-                    <li>
-                      Shipped responsive websites (WordPress/YOOtheme);
-                      marketing & process support.
-                    </li>
-                  </ul>
-                </li>
-              </ol>
-              <a
-                href="/cv.pdf"
-                className="mt-4 inline-flex items-center gap-2 px-3 py-2 border border-black uppercase text-[11px] font-bold hover:bg-black hover:text-white"
-              >
-                <Download size={16} /> Download CV
-              </a>
-            </div>
-          </div>
-        </section>
-        {/* Contact */}
-        <footer id="contact" className="border-t border-black bg-white/80">
-          <div className="mx-auto max-w-6xl px-4 py-10 grid md:grid-cols-[1fr_auto] gap-6 items-start">
-            <div>
-              <h3 className="font-black uppercase text-2xl">Contact</h3>
-              <p className="mt-2 text-sm max-w-prose">
-                Available for select collaborations. Quote number on
-                correspondence for faster routing.
-              </p>
-              <div className="mt-4 grid sm:grid-cols-3 gap-3 text-[12px]">
+          </header>
+          {/* Hero slab */}
+          <section className="mx-auto max-w-6xl px-4 py-10 grid md:grid-cols-[1fr_auto] gap-8 items-start">
+            <div className="grid gap-4">
+              <div>
+                <h2 className="font-black text-[clamp(24px,6vw,72px)] leading-[0.95] tracking-tight">
+                  Making the complex simple.
+                  <br />
+                  And having fun doing it.
+                </h2>
+                <p className="mt-3 max-w-[60ch] text-[15px] md:text-base font-medium">
+                  Designing and building user‑centric products.
+                  <br />
+                  Simplifying complex systems into intuitive, engaging
+                  experiences.
+                </p>
+                <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] uppercase">
+                  <span className="px-2 py-1 border border-black">
+                    User research & usability
+                  </span>
+                  <span className="px-2 py-1 border border-black">
+                    Design systems
+                  </span>
+                  <span className="px-2 py-1 border border-black">
+                    Front‑end development
+                  </span>
+                  <span className="px-2 py-1 border border-black">
+                    Service design
+                  </span>
+                </div>
+              </div>
+              <div className="grid sm:grid-cols-3 gap-4">
                 <div className="border border-black p-3">
-                  <p className="uppercase">Primary</p>
-                  <a
-                    className="font-mono flex items-center gap-2 mt-1 hover:underline"
-                    href="mailto:nestor.kulik@gmail.com"
-                  >
-                    <Mail size={16} /> nestor.kulik@gmail.com
-                  </a>
-                  <a
-                    className="font-mono flex items-center gap-2 mt-1 hover:underline"
-                    href="tel:+4571405920"
-                  >
-                    +45 71 40 59 20
-                  </a>
+                  <p className="text-[10px] uppercase">version</p>
+                  <p className="font-mono text-xl">v1.0.0</p>
                 </div>
                 <div className="border border-black p-3">
-                  <p className="uppercase">Website</p>
-                  <a
-                    className="font-mono hover:underline"
-                    href="https://nestux.site"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    nestux.site
-                  </a>
+                  <p className="text-[10px] uppercase">lot</p>
+                  <p className="font-mono text-xl">P0R7F0L1O</p>
                 </div>
                 <div className="border border-black p-3">
-                  <p className="uppercase">Quote</p>
-                  <p className="font-mono">
-                    RFQ‑{new Date().getFullYear()}‑001
+                  <p className="text-[10px] uppercase">date</p>
+                  <p className="font-mono text-xl">
+                    {new Date().toISOString().slice(0, 10)}
                   </p>
                 </div>
               </div>
             </div>
-            <div className="w-32 self-center md:self-start">
-              <Barcode value="MADE‑IN‑WEB/CE" height={80} />
-              <p className="text-[10px] text-center mt-1">Europe (GMT+3)</p>
+            <div className="flex z-10 flex-col items-center gap-3">
+              <RealQR data="mailto:nestor.kulik@gmail.com" />
+              <p className="text-[10px] uppercase">
+                scan to contact · fallback safe
+              </p>
             </div>
-          </div>
-          <div className="border-t border-black py-4 text-center text-[14px] ">
-            © {new Date().getFullYear()} Nestors Kuliks · All rights reserved
-          </div>
-        </footer>
-        {/* Accessibility: skip link */}
-        <a
-          href="#work"
-          className="sr-only focus:not-sr-only fixed top-2 left-2 bg-white border border-black px-3 py-2 text-[12px]"
-        >
-          Skip to work
-        </a>
-        {/* Print styles: force 1‑bit for clean hardcopies */}
-        <style>{`
+          </section>
+          {/* Controls */}
+          <section id="work" className="mx-auto max-w-6xl px-4 pb-3">
+            <div className="flex flex-wrap items-center gap-3 py-3 z-10">
+              {/* Search box */}
+              <label className="flex items-center gap-2 bg-white border border-black h-10 px-3">
+                <Filter size={16} />
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Search projects…"
+                  className="outline-none placeholder-black/40 bg-transparent text-sm"
+                />
+              </label>
+
+              {/* Tag filters */}
+              <div className="flex flex-wrap gap-2">
+                {allTags.map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => toggleTag(t)}
+                    className={`inline-flex items-center h-10 px-3 text-[11px] uppercase border border-black ${
+                      selected.includes(t) ? "bg-black text-white" : "bg-white"
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+                {selected.length > 0 && (
+                  <button
+                    onClick={() => setSelected([])}
+                    className="inline-flex items-center h-10 px-3 text-[11px] uppercase border border-dashed border-black"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+            </div>
+          </section>
+          {/* Projects grid */}
+          <section className="mx-auto max-w-6xl px-4 pb-16">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <AnimatePresence mode="popLayout">
+                {projects.map((p) => (
+                  <ProjectCard key={p.id} p={p} />
+                ))}
+              </AnimatePresence>
+            </div>
+          </section>
+          {/* About / Credentials */}
+          <section
+            id="about"
+            className="mx-auto max-w-6xl px-4 pb-16 grid lg:grid-cols-3 gap-8 items-stretch"
+          >
+            <div className="border border-black p-5 bg-white flex flex-col justify-between">
+              <div className="flex flex-col gap-3">
+                <h3 className="font-black uppercase text-2xl">About</h3>
+                <p className="max-w-prose">
+                  Agile UX/UI designer & web‑developer. I make complex products
+                  simple by pairing research with interaction design, design
+                  systems, and front‑end craft.
+                </p>
+              </div>
+              <ul className="mt-4 grid sm:grid-cols-2 gap-2 text-[12px]">
+                <li className="border border-black p-2">
+                  Location: <b>Europe (GMT+3)</b>
+                </li>
+                <li className="border border-black p-2">
+                  Email:{" "}
+                  <a
+                    href="mailto:nestor.kulik@gmail.com"
+                    className="underline font-mono"
+                  >
+                    nestors@nestux.site
+                  </a>
+                </li>
+                <li className="border border-black p-2">
+                  Phone:{" "}
+                  <a href="tel:+4571405920" className="underline font-mono">
+                    +45 71 40 59 20
+                  </a>
+                </li>
+                <li className="border border-black p-2">
+                  Website:{" "}
+                  <a
+                    href="https://nestux.site"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline font-mono"
+                  >
+                    nestux.site
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <div className="border border-black p-5 bg-white">
+              <h3 className="font-black uppercase text-2xl">Skills</h3>
+              <div className="mt-3 grid gap-2 text-[12px]">
+                {[
+                  {
+                    name: "User Research & Usability",
+                    desc: "Interviews, analysis, heatmaps, journeys, usability tests",
+                  },
+                  {
+                    name: "Front‑End Development",
+                    desc: "HTML, CSS, WordPress, Bootstrap, Power Apps, SharePoint, Mendix, OutSystems",
+                  },
+                  {
+                    name: "Service Design",
+                    desc: "Card sorting, storytelling, service blueprints, CX",
+                  },
+                  {
+                    name: "Interaction Design & Design Systems",
+                    desc: "IA, task flows, wireframing, responsive UI, tokens & components",
+                  },
+                  {
+                    name: "Motion Design & VFX",
+                    desc: "UI motion, 2D graphics, editing, VFX",
+                  },
+                  {
+                    name: "Graphic & Visual Design",
+                    desc: "Color, composition, typography, branding, print, decks",
+                  },
+                ].map((s, i) => (
+                  <div key={i} className="border border-black p-3">
+                    <div className="uppercase font-semibold">{s.name}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="border border-black p-5 bg-white flex flex-col justify-between">
+              <div>
+                <h3 className="font-black uppercase text-2xl">Experience</h3>
+                <ol className="mt-3 space-y-3 text-[12px]">
+                  <li className="border border-black p-3">
+                    <div className="flex items-center justify-between">
+                      <span>Design System Engineer — Ennova ApS</span>
+                      <span className="font-mono">01/2025 – Present</span>
+                    </div>
+                  </li>
+                  <li className="border border-black p-3">
+                    <div className="flex items-center justify-between">
+                      <span>Design Engineer — Aurora Marketplace</span>
+                      <span className="font-mono">11/2024 – Present</span>
+                    </div>
+                  </li>
+                  <li className="border border-black p-3">
+                    <div className="flex items-center justify-between">
+                      <span>Cloud First Nordics — Accenture</span>
+                      <span className="font-mono">02/2023 – 09/2023</span>
+                    </div>
+                  </li>
+                </ol>
+                <a
+                  href="/cv.pdf"
+                  className="mt-4 inline-flex items-center gap-2 px-3 py-2 border border-black uppercase text-[11px] font-bold hover:bg-black hover:text-white"
+                >
+                  <Download size={16} /> Download CV
+                </a>
+              </div>
+            </div>
+          </section>
+          {/* Contact */}
+          <footer id="contact" className="border-t border-black bg-white/80">
+            <div className="mx-auto max-w-6xl px-4 py-10 grid md:grid-cols-[1fr_auto] gap-6 items-start">
+              <div>
+                <h3 className="font-black uppercase text-2xl">Contact</h3>
+                <p className="mt-2 text-sm max-w-prose">
+                  Available for select collaborations. Quote number on
+                  correspondence for faster routing.
+                </p>
+                <div className="mt-4 grid sm:grid-cols-3 gap-3 text-[12px]">
+                  <div className="border border-black p-3">
+                    <p className="uppercase">Primary</p>
+                    <a
+                      className="font-mono flex items-center gap-2 mt-1 hover:underline"
+                      href="mailto:nestor.kulik@gmail.com"
+                    >
+                      <Mail size={16} /> nestor.kulik@gmail.com
+                    </a>
+                  </div>
+                  <div className="border border-black p-3">
+                    <p className="uppercase">Website</p>
+                    <a
+                      className="font-mono hover:underline"
+                      href="https://nestux.site"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      nestux.site
+                    </a>
+                  </div>
+                  <div className="border border-black p-3">
+                    <p className="uppercase">Quote</p>
+                    <p className="font-mono">
+                      RFQ‑{new Date().getFullYear()}‑001
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="w-32 self-center md:self-start">
+                <Barcode value="MADE‑IN‑WEB/CE" height={80} />
+                <p className="text-[10px] text-center mt-1">Europe (GMT+3)</p>
+              </div>
+            </div>
+            <div className="border-t border-black py-4 text-center text-[14px] ">
+              © {new Date().getFullYear()} neStudio · All rights reserved
+            </div>
+          </footer>
+          {/* Accessibility: skip link */}
+          <a
+            href="#work"
+            className="sr-only focus:not-sr-only fixed top-2 left-2 bg-white border border-black px-3 py-2 text-[12px]"
+          >
+            Skip to work
+          </a>
+          {/* Print styles: force 1‑bit for clean hardcopies */}
+          <style>{`
           @media print { 
             * { color: #000 !important; background: #fff !important; box-shadow: none !important; }
             a::after { content: " (" attr(href) ")"; font-size: 10px; }
           }
         `}</style>
+        </div>
       </div>
     </div>
   );
