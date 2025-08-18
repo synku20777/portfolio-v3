@@ -3,6 +3,8 @@ import React, {
   useState,
   useEffect,
   useRef,
+  useLayoutEffect,
+  useCallback,
   createContext,
   useContext,
 } from "react";
@@ -11,7 +13,10 @@ import {
   AnimatePresence,
   useMotionValue,
   useTransform,
+  useScroll,
+  useSpring,
 } from "framer-motion";
+
 import {
   Mail,
   Github,
@@ -21,16 +26,7 @@ import {
   Scissors,
   X,
 } from "lucide-react";
-
-/**
- * Industrial Portfolio — "Label/Receipt" Edition (All squared corners)
- * -------------------------------------------------------------------
- * - High-contrast black/white
- * - Technical typography + strict grid
- * - Barcode + faux-QR aesthetics
- * - Case study cards styled like thermal receipts
- * - Inline comments throughout (especially on non-trivial bits)
- */
+import DEMO from "./assets/data/works.js"; // Import demo data
 
 // -----------------------------
 // Barcode (aesthetic, not scannable)
@@ -231,7 +227,6 @@ const thermalPaperBg = {
 
 // ------------------------------------------------------
 // MagneticBackground (replaces the static grid background)
-// Adapted from your snippet to work with framer-motion v12
 // ------------------------------------------------------
 function useViewportGrid(cell = 40) {
   const [dims, setDims] = useState({ width: 0, height: 0, cols: 0, rows: 0 });
@@ -538,184 +533,135 @@ function ProjectCard({ p }) {
 }
 
 // -----------------------------
-// Demo data (replace with CMS/API later)
-// -----------------------------
-const DEMO = [
-  {
-    id: "c01",
-    title: "UxUnite — Design System",
-    client: "UxUnite",
-    year: "2022",
-    lot: null,
-    tags: ["Design System", "Accessibility", "Color", "Typography", "Audit"],
-    services: [
-      "Design System",
-      "Color Palette",
-      "Accessibility",
-      "Typography",
-      "Design Audit",
-    ],
-    status: "LIVE",
-    hours: null,
-    readMinutes: 4,
-    image: null,
-    summary:
-      "Design system to align teams: UI audit, refreshed color palette to meet WCAG, modular type scale (1.25), shared tokens/components, docs and onboarding.",
-    link: "/cases/case-1.pdf",
-  },
-  {
-    id: "c02",
-    title: "Artsy — Museum UX App",
-    client: "—",
-    year: "2022",
-    lot: null,
-    tags: ["UX Research", "Personas", "Wireframing", "Prototyping"],
-    services: [
-      "Interviews",
-      "Personas",
-      "Journey Mapping",
-      "Wireframes",
-      "Hi‑fi Prototype",
-    ],
-    status: "ARCHIVED",
-    hours: null,
-    readMinutes: 5,
-    image: null,
-    summary:
-      "12 interviews uncovered pain points (tickets, inconsistent storytelling, navigation). Ideation (Crazy 8s), low‑fi wireframes → high‑fi prototype for personalized tours, maps, and easier booking.",
-    link: "/cases/case-2.pdf",
-  },
-  {
-    id: "c03",
-    title: "Firefly — Ecommerce Website",
-    client: "Firefly",
-    year: "2024",
-    lot: null,
-    tags: ["Ecommerce", "Web", "Figma", "Branding"],
-    services: [
-      "Information Architecture",
-      "Visual Design",
-      "Prototype",
-      "Site Build",
-    ],
-    status: "LIVE",
-    hours: null,
-    readMinutes: 3,
-    image: null,
-    summary:
-      "Site for a stove alarm product; clear structure for buyers/owners (manuals, sheets), simple UX, collaboration with two junior designers; defined palette and Cardo type in Figma/FigJam.",
-    link: "/cases/case-3.pdf",
-  },
-  {
-    id: "c04",
-    title: "Cloud First Nordics — Knowledge Hub",
-    client: "Accenture",
-    year: "2023",
-    lot: null,
-    tags: ["WordPress", "UI/UX", "Research", "Redesign"],
-    services: [
-      "Information Architecture",
-      "Content Structuring",
-      "Design",
-      "WordPress (YOOtheme)",
-    ],
-    status: "LIVE",
-    hours: null,
-    readMinutes: 4,
-    image: null,
-    summary:
-      "Internal portal aggregating Cloud First content; led IA, categorization, design and launch on WordPress/YOOtheme. MVP shipped in ~1 month with minimal bugs.",
-    link: "/cases/cloud-first.pdf",
-  },
-];
-
-// -----------------------------
 // Filters helper
 // -----------------------------
 const allTags = Array.from(new Set(DEMO.flatMap((p) => p.tags || [])));
 
 // -----------------------------
-// GSAP ScrollSmoother (progressive enhancement)
+// SmoothScroll (Framer Motion) — GSAP-free (fixed container + spacer)
 // -----------------------------
-function useGsapSmoother({
-  smooth = 1.2,
-  effects = true,
-  normalizeScroll = true,
-  wrapper = "#smooth-wrapper",
-  content = "#smooth-content",
-  gsapSrc = "/gsap.min.js",
-  pluginSrc = "/ScrollSmoother.min.js",
-} = {}) {
-  useEffect(() => {
-    let smoother;
+function SmoothScroll({
+  children,
+  stiffness = 160,
+  damping = 28,
+  mass = 0.28,
+}) {
+  // Fixed container we translate vertically (keeps layout stable)
+  const scrollRef = useRef(null);
+  const [padTop, setPadTop] = useState(0); // header compensation so content doesn't sit under it
+  const [page, setPage] = useState({ height: 0, viewport: 0, maxTranslate: 0 });
 
-    const loadScript = (src) =>
-      new Promise((resolve, reject) => {
-        const s = document.createElement("script");
-        s.src = src;
-        s.async = true;
-        s.onload = () => resolve(true);
-        s.onerror = () => reject(new Error("Failed to load " + src));
-        document.head.appendChild(s);
-      });
+  const measure = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const headerEl = document.getElementById("site-header");
+    const headerH = headerEl
+      ? Math.ceil(headerEl.getBoundingClientRect().height)
+      : 0;
+    setPadTop(headerH);
 
-    const ensureGsap = async () => {
-      if (window.gsap) return true;
-      try {
-        await loadScript(gsapSrc);
-      } catch {
-        await loadScript(
-          "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"
-        );
-      }
-      return !!window.gsap;
-    };
+    // Measure intrinsic content height (children) + padding-top
+    const contentHost = el.firstElementChild || el; // inner wrapper
+    const contentH =
+      (contentHost.scrollHeight ||
+        contentHost.getBoundingClientRect().height ||
+        0) + headerH;
+    const viewport = window.innerHeight || 0;
+    const maxTranslate = Math.max(0, contentH - viewport); // how far we may translate (prevents scrolling past footer)
+    setPage({ height: contentH, viewport, maxTranslate });
+  }, []);
 
-    const ensureSmoother = async () => {
-      if (window.ScrollSmoother) return true;
-      try {
-        await loadScript(pluginSrc);
-      } catch (e) {
-        console.warn("ScrollSmoother plugin not found at", pluginSrc, e);
-        return false;
-      }
-      return !!window.ScrollSmoother;
-    };
-
-    const init = async () => {
-      const okGsap = await ensureGsap();
-      const okPlugin = await ensureSmoother();
-      if (!okGsap || !okPlugin) return;
-      try {
-        window.gsap.registerPlugin(window.ScrollSmoother);
-        smoother = window.ScrollSmoother.create({
-          wrapper,
-          content,
-          smooth,
-          effects,
-          normalizeScroll,
-        });
-        window.__smoother = smoother;
-      } catch (err) {
-        console.warn("ScrollSmoother init failed", err);
-      }
-    };
-
-    if (typeof window !== "undefined") init();
+  // Observe content/viewport changes & late assets
+  useLayoutEffect(() => {
+    measure();
+    let ro;
+    const el = scrollRef.current;
+    if (el && "ResizeObserver" in window) {
+      ro = new ResizeObserver(() => measure());
+      ro.observe(el);
+    }
+    window.addEventListener("resize", measure, { passive: true });
+    window.addEventListener("load", measure, { passive: true });
+    const raf = requestAnimationFrame(measure);
     return () => {
-      try {
-        smoother?.kill?.();
-      } catch {}
+      if (ro) ro.disconnect();
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("load", measure);
+      cancelAnimationFrame(raf);
     };
-  }, [smooth, effects, normalizeScroll, wrapper, content, gsapSrc, pluginSrc]);
+  }, [measure]);
+
+  // Map native window scroll → eased translateY (clamped to maxTranslate)
+  const { scrollY } = useScroll();
+  const yRaw = useTransform(
+    scrollY,
+    (v) => -Math.max(0, Math.min(v, page.maxTranslate))
+  );
+  const y = useSpring(yRaw, {
+    damping,
+    stiffness,
+    mass,
+    restDelta: 0.0008,
+    restSpeed: 0.0008,
+  });
+
+  return (
+    <>
+      <motion.div
+        ref={scrollRef}
+        style={{ y, "--header-h": padTop + "px" }}
+        className="fixed inset-0 z-10 will-change-transform"
+      >
+        <div style={{ paddingTop: padTop }}>{children}</div>
+      </motion.div>
+      {/* Spacer provides the document's scrollable height */}
+      <div style={{ height: page.height }} />
+    </>
+  );
+}
+
+// -----------------------------
+// Light self-tests (dev only) to guard regressions
+// -----------------------------
+function runSelfTests() {
+  try {
+    const t1 = deriveProducts({
+      id: "t1",
+      services: ["Design System"],
+      tags: ["Web"],
+    });
+    console.assert(
+      t1[0].name.includes("Design System"),
+      "services should take precedence over tags"
+    );
+
+    const t2 = deriveProducts({ id: "t2", tags: ["Web"] });
+    console.assert(
+      t2[0].name.includes("Web"),
+      "fallback to tags when no services"
+    );
+
+    console.assert(estimateReadMinutes("") === 1, "read time min should be 1");
+    const codeA = productCode("Design System Package", "seed");
+    const codeB = productCode("Design System Package", "seed");
+    console.assert(codeA === codeB, "SKU should be deterministic");
+
+    console.log("✅ Self-tests passed");
+  } catch (e) {
+    console.warn("⚠️ Self-tests failed", e);
+  }
 }
 
 export default function IndustrialPortfolio() {
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState([]);
 
-  // Initialize GSAP ScrollSmoother (looks for /gsap.min.js and /ScrollSmoother.min.js in public/)
-  useGsapSmoother({ smooth: 1.2, effects: true, normalizeScroll: true });
+  useEffect(() => {
+    if (typeof window !== "undefined" && !window.__ranPortfolioTests) {
+      window.__ranPortfolioTests = true;
+      runSelfTests();
+    }
+  }, []);
 
   /**
    * Filtering is tiny but memoized:
@@ -738,49 +684,56 @@ export default function IndustrialPortfolio() {
     setSelected((s) => (s.includes(t) ? s.filter((x) => x !== t) : [...s, t]));
 
   return (
-    <div id="smooth-wrapper" className="fixed inset-0 overflow-hidden">
-      {/* Grid overlay — sits above page background, below all content */}
+    <div className="min-w-screen bg-white text-black">
+      {/* Background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <MagneticBackground cell={44} color="#E5E7EB" thickness={1} />
       </div>
-      {/* Content wrapper ensures everything stays above the overlay */}
-      <div id="smooth-content" className="min-w-screen bg-white text-black">
-        <div className="relative z-10">
-          {/* Top label header — all squared; nav chips are square too */}
-          <header className="sticky top-0 z-40 border-b border-black bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/70">
-            <div className="mx-auto max-w-6xl px-4 py-3 flex items-center gap-4">
-              <div className="flex-1 leading-tight">
-                <h1 className="font-black tracking-[-0.02em] text-[clamp(18px,2.6vw,28px)]">
-                  neStudio
-                </h1>
-                <p className="uppercase text-[10px]">
-                  Web development and design studio
-                </p>
-              </div>
-              <nav className="hidden md:flex items-center gap-3 text-[11px] uppercase">
-                <a
-                  href="#work"
-                  className="px-2 py-1 border border-black hover:bg-black hover:text-white"
-                >
-                  Work
-                </a>
-                <a
-                  href="#about"
-                  className="px-2 py-1 border border-black hover:bg-black hover:text-white"
-                >
-                  About
-                </a>
-                <a
-                  href="#contact"
-                  className="px-2 py-1 border border-black hover:bg-black hover:text-white"
-                >
-                  Contact
-                </a>
-              </nav>
+
+      {/* Content */}
+      <div className="relative z-10">
+        {/* Top label header — all squared; nav chips are square too */}
+        <header
+          id="site-header"
+          className="sticky top-0 z-40 border-b border-black bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/70"
+        >
+          <div className="mx-auto max-w-6xl px-4 py-3 flex items-center gap-4">
+            <div className="flex-1 leading-tight">
+              <h1 className="font-black tracking-[-0.02em] text-[clamp(18px,2.6vw,28px)]">
+                neStudio
+              </h1>
+              <p className="uppercase text-[10px]">
+                Web development and design studio
+              </p>
             </div>
-          </header>
+            <nav className="hidden md:flex items-center gap-3 text-[11px] uppercase">
+              <a
+                href="#work"
+                className="px-2 py-1 border border-black hover:bg-black hover:text-white"
+              >
+                Work
+              </a>
+              <a
+                href="#about"
+                className="px-2 py-1 border border-black hover:bg-black hover:text-white"
+              >
+                About
+              </a>
+              <a
+                href="#contact"
+                className="px-2 py-1 border border-black hover:bg-black hover:text-white"
+              >
+                Contact
+              </a>
+            </nav>
+          </div>
+        </header>
+
+        {/* Smooth content */}
+        <SmoothScroll>
           {/* Hero slab */}
-          <section className="mx-auto max-w-6xl px-4 py-10 grid md:grid-cols-[1fr_auto] gap-8 items-start">
+          <section className="relative min-h-[calc(100dvh-var(--header-h))] mx-auto max-w-6xl px-4 py-10 grid md:grid-cols-[1fr_auto] gap-8 items-start">
+            {/* Left column */}
             <div className="grid gap-4">
               <div>
                 <h2 className="font-black text-[clamp(24px,6vw,72px)] leading-[0.95] tracking-tight">
@@ -794,45 +747,52 @@ export default function IndustrialPortfolio() {
                   Simplifying complex systems into intuitive, engaging
                   experiences.
                 </p>
-                <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] uppercase">
-                  <span className="px-2 py-1 border border-black">
-                    User research & usability
-                  </span>
-                  <span className="px-2 py-1 border border-black">
-                    Design systems
-                  </span>
-                  <span className="px-2 py-1 border border-black">
-                    Front‑end development
-                  </span>
-                  <span className="px-2 py-1 border border-black">
-                    Service design
-                  </span>
-                </div>
-              </div>
-              <div className="grid sm:grid-cols-3 gap-4">
-                <div className="border border-black p-3">
-                  <p className="text-[10px] uppercase">version</p>
-                  <p className="font-mono text-xl">v1.0.0</p>
-                </div>
-                <div className="border border-black p-3">
-                  <p className="text-[10px] uppercase">lot</p>
-                  <p className="font-mono text-xl">P0R7F0L1O</p>
-                </div>
-                <div className="border border-black p-3">
-                  <p className="text-[10px] uppercase">date</p>
-                  <p className="font-mono text-xl">
-                    {new Date().toISOString().slice(0, 10)}
-                  </p>
-                </div>
               </div>
             </div>
+
+            {/* Right column (QR) */}
             <div className="flex z-10 flex-col items-center gap-3">
               <RealQR data="mailto:nestor.kulik@gmail.com" />
               <p className="text-[10px] uppercase">
                 scan to contact · fallback safe
               </p>
             </div>
+
+            {/* Hero tags + version/lot/date pinned bottom-right */}
+            <div className="absolute bottom-4 right-4 z-10 flex flex-col items-end gap-2">
+              <div className="flex flex-wrap items-center justify-end gap-2 text-[10px] uppercase">
+                <span className="px-2 py-1 border border-black">
+                  User research & usability
+                </span>
+                <span className="px-2 py-1 border border-black">
+                  Design systems
+                </span>
+                <span className="px-2 py-1 border border-black">
+                  Front‑end development
+                </span>
+                <span className="px-2 py-1 border border-black">
+                  Service design
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 w-full md:w-auto">
+                <div className="border border-black p-2">
+                  <p className="text-[9px] uppercase">version</p>
+                  <p className="font-mono text-sm md:text-base">v1.0.0</p>
+                </div>
+                <div className="border border-black p-2">
+                  <p className="text-[9px] uppercase">lot</p>
+                  <p className="font-mono text-sm md:text-base">P0R7F0L1O</p>
+                </div>
+                <div className="border border-black p-2">
+                  <p className="text-[9px] uppercase">date</p>
+                  <p className="font-mono text-sm md:text-base">
+                    {new Date().toISOString().slice(0, 10)}
+                  </p>
+                </div>
+              </div>
+            </div>
           </section>
+
           {/* Controls */}
           <section id="work" className="mx-auto max-w-6xl px-4 pb-3">
             <div className="flex flex-wrap items-center gap-3 py-3 z-10">
@@ -871,6 +831,7 @@ export default function IndustrialPortfolio() {
               </div>
             </div>
           </section>
+
           {/* Projects grid */}
           <section className="mx-auto max-w-6xl px-4 pb-16">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -881,6 +842,7 @@ export default function IndustrialPortfolio() {
               </AnimatePresence>
             </div>
           </section>
+
           {/* About / Credentials */}
           <section
             id="about"
@@ -994,6 +956,7 @@ export default function IndustrialPortfolio() {
               </div>
             </div>
           </section>
+
           {/* Contact */}
           <footer id="contact" className="border-t border-black bg-white/80">
             <div className="mx-auto max-w-6xl px-4 py-10 grid md:grid-cols-[1fr_auto] gap-6 items-start">
@@ -1041,6 +1004,7 @@ export default function IndustrialPortfolio() {
               © {new Date().getFullYear()} neStudio · All rights reserved
             </div>
           </footer>
+
           {/* Accessibility: skip link */}
           <a
             href="#work"
@@ -1048,14 +1012,17 @@ export default function IndustrialPortfolio() {
           >
             Skip to work
           </a>
+
           {/* Print styles: force 1‑bit for clean hardcopies */}
           <style>{`
-          @media print { 
-            * { color: #000 !important; background: #fff !important; box-shadow: none !important; }
-            a::after { content: " (" attr(href) ")"; font-size: 10px; }
-          }
-        `}</style>
-        </div>
+            /* Prevent iOS/Edge rubber-banding with SmoothScroll */
+            html, body { overscroll-behavior: none; }
+            @media print { 
+              * { color: #000 !important; background: #fff !important; box-shadow: none !important; }
+              a::after { content: " (" attr(href) ")"; font-size: 10px; }
+            }
+          `}</style>
+        </SmoothScroll>
       </div>
     </div>
   );
