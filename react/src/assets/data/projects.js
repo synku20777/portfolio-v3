@@ -1,4 +1,4 @@
-const DEMO = [
+export const DEMO = [
   {
     id: "c01",
     title: "UxUnite — Design System",
@@ -87,4 +87,6 @@ const DEMO = [
   },
 ];
 
-export default DEMO;
+// Back-compat alias if other files import PROJECTS
+export const PROJECTS = DEMO;
+export const ALL_TAGS = Array.from(new Set(DEMO.flatMap((p) => p.tags || [])));
