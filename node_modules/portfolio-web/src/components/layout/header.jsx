@@ -1,7 +1,7 @@
 import React from "react";
-import { Sun, Moon, X, Filter } from "lucide-react";
+import { Sun, Moon } from "lucide-react";
 
-export default function Header({ theme, setTheme }) {
+export default function Header({ theme, onToggleTheme }) {
   return (
     <header
       id="site-header"
@@ -37,7 +37,7 @@ export default function Header({ theme, setTheme }) {
           </a>
         </nav>
         <button
-          onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+          onClick={onToggleTheme}
           className="px-2 py-1 border border-black dark:border-neutral-300 uppercase text-[11px] inline-flex items-center gap-2"
           aria-label="Toggle theme"
           type="button"

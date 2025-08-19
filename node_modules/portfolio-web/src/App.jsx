@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
-import MagneticBackground from "@/components/visuals/magneticbg";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import SmoothScroll from "@/components/layout/scroll";
 import Header from "@/components/layout/header";
 import Hero from "@/components/hero";
@@ -28,6 +27,28 @@ export default function App() {
     else root.classList.remove("dark");
   }, [theme]);
 
+  const flipTheme = useCallback(() => {
+    const next = theme === "dark" ? "light" : "dark";
+    if (document.startViewTransition) {
+      document.startViewTransition(() => setTheme(next));
+    } else {
+      // Fallback for browsers without View Transitions (e.g., Firefox)
+      setTheme(next);
+      document.documentElement.classList.add("theme-anim");
+      setTimeout(() => {
+        document.documentElement.classList.remove("theme-anim");
+      }, 300); // Match transition-duration in CSS
+    }
+  }, [theme]);
+  useEffect(() => {
+    try {
+      localStorage.setItem("theme", theme);
+    } catch {}
+    const root = document.getElementById("theme-root");
+    if (!root) return;
+    root.classList.toggle("dark", theme === "dark");
+  }, [theme]);
+
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState([]);
   const projects = useMemo(
@@ -47,16 +68,12 @@ export default function App() {
     setSelected((s) => (s.includes(t) ? s.filter((x) => x !== t) : [...s, t]));
 
   return (
-    <div className="theme-scope min-w-screen bg-white text-black dark:bg-neutral-950 dark:text-neutral-100">
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <MagneticBackground
-          cell={44}
-          color={theme === "dark" ? "rgba(255,255,255,0.14)" : "#E5E7EB"}
-          thickness={1}
-        />
-      </div>
+    <div
+      id="theme-root"
+      className="theme-scope min-w-screen bg-white text-black dark:bg-neutral-950 dark:text-neutral-100"
+    >
       <div className="relative z-10">
-        <Header theme={theme} setTheme={setTheme} />
+        <Header theme={theme} onToggleTheme={flipTheme} />
         <SmoothScroll>
           <Hero />
           <FilterBar

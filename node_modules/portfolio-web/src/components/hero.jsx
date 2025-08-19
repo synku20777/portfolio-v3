@@ -1,9 +1,13 @@
 import React from "react";
 import RealQR from "@/components/visuals/qr-gen";
+import MagneticBackground from "@/components/visuals/magneticbg";
 
 export default function Hero() {
   return (
     <section className="relative min-h-[calc(100dvh-var(--header-h))] mx-auto max-w-6xl px-4 py-10 grid md:grid-cols-[1fr_auto] gap-8 items-start">
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <MagneticBackground cell={44} thickness={1} />
+      </div>
       <div className="grid gap-4">
         <div>
           <h2 className="font-black text-[clamp(24px,6vw,72px)] leading-[0.95] tracking-tight">

@@ -41,7 +41,7 @@
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-
+  view-transition-name: theme;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -49,6 +49,13 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
+
+
+  ::view-transition-old(theme),
+  ::view-transition-new(theme) {
+    animation-duration: 500ms;
+    animation-timing-function: cubic-bezier(.2, .8, .2, 1);
+  }
 
   .theme-scope,
   .theme-scope *,
@@ -58,6 +65,27 @@
     transition-duration: 500ms;
     /* <-- 0.5s */
     transition-timing-function: cubic-bezier(.2, .8, .2, 1);
+  }
+}
+
+/* Fallback transition class for Firefox and others without View Transitions */
+@media (prefers-reduced-motion: no-preference) {
+
+  html.theme-anim,
+  html.theme-anim * {
+    transition-property: background-color, color, border-color, fill, stroke, box-shadow;
+    transition-duration: 300ms;
+    transition-timing-function: cubic-bezier(.2, .8, .2, 1);
+  }
+}
+
+/* Nice cross-fade when View Transitions are supported (Chromium) */
+@media (prefers-reduced-motion: no-preference) {
+
+  ::view-transition-old(theme),
+  ::view-transition-new(theme) {
+    animation-duration: 300ms;
+    animation-timing-function: cubic-bezier(.2, .8, .2, 1);
   }
 }
 

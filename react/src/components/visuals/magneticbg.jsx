@@ -72,7 +72,7 @@ function Filing({ color = "#E5E7EB", thickness = 1 }) {
 
 export default function MagneticBackground({
   cell = 40,
-  color = "#E5E7EB",
+  color = "rgba(255,255,255,0.14)",
   thickness = 1,
 }) {
   const { cols, rows } = useViewportGrid(cell);
