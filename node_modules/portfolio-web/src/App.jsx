@@ -47,7 +47,7 @@ export default function App() {
     setSelected((s) => (s.includes(t) ? s.filter((x) => x !== t) : [...s, t]));
 
   return (
-    <div className="min-w-screen bg-white text-black dark:bg-neutral-950 dark:text-neutral-100">
+    <div className="theme-scope min-w-screen bg-white text-black dark:bg-neutral-950 dark:text-neutral-100">
       <div className="fixed inset-0 z-0 pointer-events-none">
         <MagneticBackground
           cell={44}
