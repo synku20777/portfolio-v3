@@ -62,17 +62,15 @@ function Filing({ color = "#E5E7EB", thickness = 1 }) {
     return Math.atan2(dy, dx) * (180 / Math.PI);
   });
   return (
-    <motion.div
-      ref={ref}
-      className="mag-filing"
-      style={{ rotate, backgroundColor: color, height: thickness }}
-    />
+    <motion.div ref={ref} className="mag-filing" style={{ rotate, color }}>
+      {"\u2192"}
+    </motion.div>
   );
 }
 
 export default function MagneticBackground({
   cell = 40,
-  color = "rgba(255,255,255,0.14)",
+  color = "rgba(137,137,137, 0.4)",
   thickness = 1,
 }) {
   const { cols, rows } = useViewportGrid(cell);
@@ -102,7 +100,7 @@ export default function MagneticBackground({
           ))}
         </div>
       </div>
-      <style>{`.mag-filing{width:70%;border-radius:2px;justify-self:center;align-self:center;transform-origin:50% 50%;will-change:transform}@media (max-width:640px){.mag-filing{width:66%}}`}</style>
+      <style>{`.mag-filing{width:70%;justify-self:center;align-self:center;transform-origin:50% 50%;will-change:transform;display:flex;align-items:center;justify-content:center;font-size:clamp(8px,1.6vw,14px);line-height:1}@media (max-width:640px){.mag-filing{width:66%}}`}</style>
     </PointerContext.Provider>
   );
 }

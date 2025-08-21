@@ -29,21 +29,22 @@ export default function Barcode({
   let x = 0;
   return (
     <svg
+      className="qr-auto-invert"
       viewBox={`0 0 ${width} ${height}`}
       width="100%"
       height={height}
       aria-label={`barcode ${value}`}
-      role="img"
     >
-      {bars.map((b, i) => {
+      {bars.map((b) => {
+        const currX = x;
         const rect = (
           <rect
-            key={i}
-            x={x}
+            key={currX}
+            x={currX}
             y={0}
             width={b.w * density}
             height={height}
-            fill={b.black ? "#111" : "#fff"}
+            className={b.black ? "color-black" : "fill-white"}
           />
         );
         x += b.w * density;

@@ -1,9 +1,10 @@
-export const DEMO = [
+export const DATA = [
   {
+    type: "project",
     id: "c01",
     title: "Design System",
     client: "UxUnite",
-    year: "2022 - 2023",
+    year: "2022",
     lot: null,
     tags: ["Design System", "Accessibility", "Color", "Typography", "Audit"],
     services: [
@@ -22,10 +23,34 @@ export const DEMO = [
     link: "/cases/case-1.pdf",
   },
   {
+    type: "project",
+    id: "c01",
+    title: "Design System",
+    client: "Aurora",
+    year: "2022",
+    lot: null,
+    tags: ["Design System", "Accessibility", "Color", "Typography", "Audit"],
+    services: [
+      "Design System",
+      "Color Palette",
+      "Accessibility",
+      "Typography",
+      "Design Audit",
+    ],
+    status: "LIVE",
+    hours: null,
+    readMinutes: 4,
+    image: null,
+    summary:
+      "Design system to align teams: UI audit, refreshed color palette to meet WCAG, modular type scale (1.25), shared tokens/components, docs and onboarding.",
+    link: "/cases/case-1.pdf",
+  },
+  {
+    type: "project",
     id: "c02",
     title: "Museum Mobile App",
-    client: "Course Work",
-    year: "2022 - 2022",
+    client: "—",
+    year: "2022",
     lot: null,
     tags: ["UX Research", "Personas", "Wireframing", "Prototyping"],
     services: [
@@ -44,6 +69,7 @@ export const DEMO = [
     link: "/cases/case-2.pdf",
   },
   {
+    type: "project",
     id: "c03",
     title: "Ecommerce Website",
     client: "Firefly",
@@ -65,6 +91,7 @@ export const DEMO = [
     link: "/cases/case-3.pdf",
   },
   {
+    type: "project",
     id: "c04",
     title: "Knowledge Hub",
     client: "Accenture",
@@ -86,56 +113,49 @@ export const DEMO = [
     link: "/cases/cloud-first.pdf",
   },
   {
-    id: "c05",
-    title: "C2C Platform",
-    client: "Aurora",
-    year: "2025 - Present",
-    lot: null,
-    tags: ["Design System", "Accessibility", "Color", "Typography", "Branding"],
-    services: ["Design System", "Color Palette", "Accessibility", "Typography"],
-    status: "LIVE",
-    hours: 20,
-    readMinutes: 7,
-    image: null,
-    summary: "C2C Vinted-like platform for second-hand fashion.",
-    link: "/cases/aurora-c2c.pdf",
+    type: "about",
+    bio: "Agile UX/UI designer & web‑developer. I make complex products simple by pairing research with interaction design, design systems, and front‑end craft.",
+    location: "Europe (GMT+3)",
+    email: "nestor.kulik@gmail.com",
+    phone: "+45 71 40 59 20",
+    website: {
+      label: "nestux.site",
+      url: "https://nestux.site",
+    },
+    cvUrl: "/cv.pdf",
   },
   {
-    id: "c06",
-    title: "B2B SawS platform",
-    client: "Ennova",
-    year: "2025 - 2025",
-    lot: null,
-    tags: ["Design System", "Accessibility", "Adoption", "Infrastructure"],
-    services: ["Design System", "Tokens", "Accessibility", "Infrastructure"],
-    status: "LIVE",
-    hours: 20,
-    readMinutes: 7,
-    image: null,
-    summary:
-      "B2B software with a service platform Design system integration and design update.",
-    link: "/cases/ennova-b2b.pdf",
+    type: "skill",
+    name: "User Research & Usability",
+  },
+  {
+    type: "skill",
+    name: "Front‑End Development",
+  },
+  {
+    type: "skill",
+    name: "Service Design",
+  },
+  {
+    type: "skill",
+    name: "Interaction Design & Design Systems",
+  },
+  {
+    type: "skill",
+    name: "Motion Design & VFX",
+  },
+  {
+    type: "skill",
+    name: "Graphic & Visual Design",
+  },
+  {
+    type: "experience",
+    label: "Design Engineer — Aurora Marketplace",
+    period: "11/2024 – Present",
+  },
+  {
+    type: "experience",
+    label: "Cloud First Nordics — Accenture",
+    period: "02/2023 – 09/2023",
   },
 ];
-
-// About/profile data (merged from about.js)
-export const ABOUT = {
-  bio: "Agile UX/UI designer & web‑developer. I make complex products simple by pairing research with interaction design, design systems, and front‑end craft.",
-  location: "Europe (GMT+3)",
-  email: "nestor.kulik@gmail.com",
-  phone: "+45 71 40 59 20",
-  website: { label: "nestux.site", url: "https://nestux.site" },
-  skills: [
-    { name: "User Research & Usability" },
-    { name: "Front‑End Development" },
-    { name: "Service Design" },
-    { name: "Interaction Design & Design Systems" },
-    { name: "Motion Design & VFX" },
-    { name: "Graphic & Visual Design" },
-  ],
-  cvUrl: "/cv.pdf",
-};
-
-// Back-compat alias if other files import PROJECTS
-export const PROJECTS = DEMO;
-export const ALL_TAGS = Array.from(new Set(DEMO.flatMap((p) => p.tags || [])));

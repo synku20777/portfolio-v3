@@ -10,7 +10,10 @@ export default function FilterBar({
   clear,
 }) {
   return (
-    <section id="work" className="mx-auto max-w-6xl px-4 pb-3">
+    <section
+      id="work"
+      className="scroll-mt-16 md:scroll-mt-20 mx-auto mt-45 max-w-6xl px-4 pb-3"
+    >
       <div className="flex flex-wrap items-center gap-3 py-3 z-10">
         <label className="flex items-center gap-2 bg-white dark:bg-neutral-900 border border-black dark:border-neutral-300 h-10 px-3">
           <Filter size={16} />

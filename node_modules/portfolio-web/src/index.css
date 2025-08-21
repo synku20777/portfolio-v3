@@ -46,6 +46,22 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* QR theme colors (used by QR generator) */
+  --qr-bg: theme(colors.white);
+  /* light background */
+  --qr-fg: theme(colors.neutral.900);
+  /* light foreground (near black) */
+
+  /* tune this to your header height */
+  --header-h: 64px;
+}
+
+/* Dark theme overrides for QR colors */
+.dark {
+  --qr-bg: theme(colors.neutral.950);
+  /* dark background */
+  --qr-fg: theme(colors.neutral.200);
+  /* dark foreground */
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -93,14 +109,26 @@
   transition: background-color 500ms cubic-bezier(.2, .8, .2, 1);
 }
 
+/* Invert raster QRs in dark theme (for <img> fallback) */
+.dark .qr-auto-invert {
+  filter: invert(1);
+}
+
+.qr-auto-invert,
+.qr-auto-invert img,
+.qr-auto-invert canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
 a {
   font-weight: 500;
-  color: #0000CD;
+  /* color: #0000CD; */
   text-decoration: inherit;
 }
 
 a:hover {
-  color: #0000FF;
+  /* color: #0000FF; */
 }
 
 body {
@@ -119,4 +147,10 @@ h1 {
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
+}
+
+/* Smooth scrolling and correct offset for hash jumps */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: var(--header-h);
 }

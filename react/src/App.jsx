@@ -5,6 +5,7 @@ import Hero from "@/components/hero";
 import FilterBar from "@/components/filter-bar";
 import ProjectCard from "@/components/project-card";
 import Footer from "@/components/layout/footer";
+import About from "@/components/about";
 import { DEMO, ALL_TAGS } from "@/assets/data/projects";
 
 export default function App() {
@@ -92,6 +93,7 @@ export default function App() {
             </div>
           </section>
           {/* About section stays here (can split further if you want) */}
+          <About />
           <Footer />
           <a
             href="#work"

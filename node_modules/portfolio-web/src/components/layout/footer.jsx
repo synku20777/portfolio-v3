@@ -4,10 +4,7 @@ import Barcode from "@/components/visuals/Barcode";
 
 export default function Footer() {
   return (
-    <footer
-      id="contact"
-      className="border-t border-black dark:border-neutral-300 bg-white/80 dark:bg-neutral-900/80"
-    >
+    <footer id="contact">
       <div className="mx-auto max-w-6xl px-4 py-10 grid md:grid-cols-[1fr_auto] gap-6 items-start">
         <div>
           <h3 className="font-black uppercase text-2xl">Contact</h3>
@@ -47,7 +44,7 @@ export default function Footer() {
           <p className="text-[10px] text-center mt-1">Europe (GMT+3)</p>
         </div>
       </div>
-      <div className="border-t border-black dark:border-neutral-300 py-4 text-center text-[14px]">
+      <div className=" text-center text-[14px]">
         © {new Date().getFullYear()} neStudio · All rights reserved
       </div>
     </footer>
